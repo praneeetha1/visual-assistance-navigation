@@ -16,8 +16,7 @@ def speak(q):
     while True:
         if not q.empty():
             label, distance, position = q.get()
-            rounded_distance = round(distance * 2) / 2  # Round to integer or in steps of 0.5
-            # IF IT SAYS A INT NUMBER, IT REMOVES THE .0 PART. IT SAYS DIRECTLY 2 INSTEAD OF 2.0.
+            rounded_distance = round(distance * 2) / 2 # Round to integer or in steps of 0.5
             rounded_distance_str = str(int(rounded_distance)) if rounded_distance.is_integer() else str(rounded_distance)
             if label in class_avg_sizes:
                 engine.say(f"{label} IS {rounded_distance_str} METERS ON {position}")
@@ -60,27 +59,52 @@ def blur_person(image, box):
     return image
 
 
-model = YOLO("gpModel.pt")
+# model = YOLO("gpModel.pt") -- only detects people, subset of a huger data
+
+model = YOLO("yolov8n.pt") # nano model, faster but less accurate
 cap = cv2.VideoCapture("test_video.mp4")
+# cap = cv2.VideoCapture("http://172.23.44.250:8080/video")
 
 class_avg_sizes = {
+    # Core navigation objects
     "person": {"width_ratio": 2.5},
     "car": {"width_ratio": 0.37},
     "bicycle": {"width_ratio": 2.3},
     "motorcycle": {"width_ratio": 2.4},
     "bus": {"width_ratio": 0.3},
+    "truck": {"width_ratio": 0.35},
+
+    # Common stationary obstacles
+    "chair": {"width_ratio": 1.5},
+    "couch": {"width_ratio": 1.8},
+    "bed": {"width_ratio": 2.2},
+    "table": {"width_ratio": 1.9},
+    "dining table": {"width_ratio": 1.9},
+    "bench": {"width_ratio": 1.6},
+    "plant": {"width_ratio": 1.4},
+    "tv": {"width_ratio": 1.2},
+
+    # Small obstacles / misc
+    "dog": {"width_ratio": 1.5},
+    "cat": {"width_ratio": 1.9},
     "traffic light": {"width_ratio": 2.95},
     "stop sign": {"width_ratio": 2.55},
-    "bench": {"width_ratio": 1.6},
-    "cat": {"width_ratio": 1.9},
-    "dog": {"width_ratio": 1.5},
+    "fire hydrant": {"width_ratio": 2.2},
+    
+    "door": {"width_ratio": 2.8},
+    "window": {"width_ratio": 2.3},
+    "stairs": {"width_ratio": 3.0},
 }
 
 pause = False
 while cap.isOpened():
     if not pause:
         ret, frame = cap.read()
-        results = model.predict(frame)
+        
+        if not ret or frame is None:
+            break
+
+        results = model(frame)
         result = results[0]
         nearest_object = None
         min_distance = float('inf')
